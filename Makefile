@@ -1,6 +1,6 @@
 # Watch and run chatbot program
 chatbot.dev:
-	gow run ./cmd/chatbot
+	dotenv -e ./.env.development gow run ./cmd/chatbot
 
 # Builds chatbot binary named ./bin/chatbot
 chatbot.build:

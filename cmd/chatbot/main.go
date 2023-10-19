@@ -3,16 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/controller"
+	"github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/utility"
 )
 
 func main() {
-	http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Received webhook:")
-		fmt.Println(r.Body)
-		w.WriteHeader(200)
-		w.Write([]byte("hello"))
-	})
+	port := utility.GetEnv[int64]("PORT", 3000)
+	http.HandleFunc("/chat/messenger", controller.Chat{}.HandleMessenger)
+	fmt.Printf("Running http server at port %d\n", port)
 
-	fmt.Println("Started http server...")
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), nil)
 }

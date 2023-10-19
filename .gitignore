@@ -24,3 +24,7 @@ Sessionx.vim
 *~
 tags
 [._]*.un~
+
+# Application
+*.env.*
+!.env.example
