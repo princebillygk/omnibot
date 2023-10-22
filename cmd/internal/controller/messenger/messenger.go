@@ -1,10 +1,12 @@
-package controller
+package messenger
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 
+	messenger "github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/controller/messenger/inputs"
 	"github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/utility"
 )
 
@@ -12,7 +14,7 @@ var msngrVerfToken string
 
 func init() {
 	var ok bool
-	msngrVerfToken, ok = os.LookupEnv("MESSENGER_WEBHOOK_INTEGRATION_TOKEN")
+	msngrVerfToken, ok = os.LookupEnv("MESSENGER_VERIFY_TOKEN")
 	if !ok {
 		panic("Messenger Verification Webhook doesn't exists")
 	}
@@ -20,6 +22,10 @@ func init() {
 
 // Messenger is a controller for messaging services
 type Messenger struct {
+}
+
+func New() *Messenger {
+	return &Messenger{}
 }
 
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -34,19 +40,21 @@ func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleNotification(w http.ResponseWriter, r *http.Request) {
-	var body map[string]any
+	var body *messenger.NotificationInput
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if body["object"] != "page" {
+	if body.Object != "page" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	utility.DampVar(body)
+	for _, entry := range body.Entry {
+		utility.DampVar(entry)
+	}
 	w.WriteHeader(200)
 }
 
@@ -61,4 +69,5 @@ func handleVerification(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(200)
 	w.Write([]byte(challenge))
+	defer log.Println("Verified webhook callback url!")
 }
