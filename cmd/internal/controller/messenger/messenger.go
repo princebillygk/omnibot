@@ -53,7 +53,8 @@ func handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, entry := range body.Entry {
-		utility.DampVar(entry)
+		switch entry.(type) {
+		}
 	}
 	w.WriteHeader(200)
 }
