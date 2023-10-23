@@ -52,21 +52,21 @@ func handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, entry := range body.Entry {
-		log.Printf("%#v", entry)
-		switch event := entry.Messaging[0]; {
-		case event.MessageEvent != nil:
-			handleMessage(w, event.MessageEvent, &event.EventProps)
+		switch e := entry.Messaging[0]; {
+		case e.MessageEvent != nil:
+			err = handleMessage(w, &MessageInput{
+				MessageEvent: e.MessageEvent,
+				EventProps:   &e.EventProps,
+			})
+		}
+
+		if err != nil {
+			log.Println(err)
+			json.NewEncoder(w).Encode(MessageResponse{
+				Text: "Failed to parse message",
+			})
 		}
 	}
-	w.WriteHeader(200)
-}
-
-func handleMessage(w http.ResponseWriter, me *messenger.MessageEvent, props *messenger.EventProps) {
-	log.Println("Sender: ", props.Sender.ID)
-	log.Println("Receiver: ", props.Recipient.ID)
-	log.Println("Timestamp: ", props.Timestamp)
-	log.Println("Message ID", me.Message.MID)
-	log.Println("Message Text", me.Message.Text)
 }
 
 func handleVerification(w http.ResponseWriter, r *http.Request) {
