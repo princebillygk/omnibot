@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	messenger "github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/controller/messenger/inputs"
+	messenger "github.com/princebillygk/se-job-aggregator-chatbot/internal/controller/messenger/inputs"
 )
 
 type MessageInput struct {

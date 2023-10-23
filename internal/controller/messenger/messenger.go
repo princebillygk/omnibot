@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	messenger "github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/controller/messenger/inputs"
+	messenger "github.com/princebillygk/se-job-aggregator-chatbot/internal/controller/messenger/inputs"
+	"github.com/princebillygk/se-job-aggregator-chatbot/pkg/facebook"
 )
 
 var msngrVerfToken string
@@ -21,10 +22,11 @@ func init() {
 
 // Messenger is a controller for messaging services
 type Messenger struct {
+	pgSrvc *facebook.PageService
 }
 
-func New() *Messenger {
-	return &Messenger{}
+func New(pgSrvc *facebook.PageService) *Messenger {
+	return &Messenger{pgSrvc}
 }
 
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
