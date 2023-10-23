@@ -1,6 +1,6 @@
 package messenger
 
-type NotificationInput struct {
+type Notification struct {
 	Entry  []Entry `json:"entry"`
 	Object string  `json:"object"`
 }
