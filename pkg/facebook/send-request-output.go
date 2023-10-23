@@ -1,6 +1,6 @@
 package facebook
 
-type SendRequestOutputBody struct {
+type SendRequestErrorBody struct {
 	Error struct {
 		Message   string `json:"message"`
 		Type      string `json:"type"`

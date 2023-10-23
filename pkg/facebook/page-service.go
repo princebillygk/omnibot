@@ -58,7 +58,7 @@ func (p PageService) SendMsg(senderId string, msg string) error {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		var output SendRequestOutputBody
+		var output SendRequestErrorBody
 		json.NewDecoder(res.Body).Decode(&output)
 		return fmt.Errorf("Unable to send message! Client Error: %s ", output.Error.Message)
 	}
