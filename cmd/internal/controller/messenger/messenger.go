@@ -7,7 +7,6 @@ import (
 	"os"
 
 	messenger "github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/controller/messenger/inputs"
-	"github.com/princebillygk/se-job-aggregator-chatbot/cmd/internal/utility"
 )
 
 var msngrVerfToken string
@@ -53,10 +52,21 @@ func handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, entry := range body.Entry {
-		switch entry.(type) {
+		log.Printf("%#v", entry)
+		switch event := entry.Messaging[0]; {
+		case event.MessageEvent != nil:
+			handleMessage(w, event.MessageEvent, &event.EventProps)
 		}
 	}
 	w.WriteHeader(200)
+}
+
+func handleMessage(w http.ResponseWriter, me *messenger.MessageEvent, props *messenger.EventProps) {
+	log.Println("Sender: ", props.Sender.ID)
+	log.Println("Receiver: ", props.Recipient.ID)
+	log.Println("Timestamp: ", props.Timestamp)
+	log.Println("Message ID", me.Message.MID)
+	log.Println("Message Text", me.Message.Text)
 }
 
 func handleVerification(w http.ResponseWriter, r *http.Request) {

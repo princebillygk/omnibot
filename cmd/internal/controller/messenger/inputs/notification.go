@@ -6,7 +6,7 @@ type NotificationInput struct {
 }
 
 type Message struct {
-	Mid  string `json:"mid,omitempty"`
+	MID  string `json:"mid,omitempty"`
 	Text string `json:"text,omitempty"`
 }
 
@@ -18,28 +18,28 @@ type Sender struct {
 	ID string `json:"id,omitempty"`
 }
 
-type WebhookEvent interface {
-	MessageEvent | PostbackEvent
+type Entry struct {
+	ID        string  `json:"id"`
+	Messaging []Event `json:"messaging"`
+	Time      int64   `json:"time"`
 }
 
-type WebhookEventBase struct {
+type EventProps struct {
 	Recipient Recipient `json:"recipient"`
 	Sender    Sender    `json:"sender"`
 	Timestamp int64     `json:"timestamp"`
 }
 
+type Event struct {
+	EventProps
+	*MessageEvent
+	*PostbackEvent
+}
+
 type MessageEvent struct {
-	WebhookEventBase
-	Message Message `json:"message"`
+	Message Message `json:"message,omitempty"`
 }
 
 type PostbackEvent struct {
-	WebhookEventBase
-	PostbackEvent map[string]any `json:'postback'`
-}
-
-type Entry struct {
-	ID        string         `json:"id"`
-	Messaging []WebhookEvent `json:"messaging"`
-	Time      int64          `json:"time"`
+	PostbackEvent map[string]any `json:"postback,omitempty"`
 }
