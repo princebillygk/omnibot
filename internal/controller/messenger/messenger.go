@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/princebillygk/se-job-aggregator-chatbot/pkg/facebook"
+	"github.com/princebillygk/omnibot/pkg/facebook"
 )
 
 var msngrVerfToken string

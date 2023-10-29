@@ -1,3 +1,3 @@
-module github.com/princebillygk/se-job-aggregator-chatbot
+module github.com/princebillygk/omnibot
 
 go 1.21.0
