@@ -15,6 +15,8 @@ import (
 	"github.com/princebillygk/omnibot/pkg/facebook"
 )
 
+// TODO: Handle duplicacy of request
+
 var msngrVerfToken string
 var appSecret string
 
@@ -130,7 +132,6 @@ func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool 
 
 	expectedHash := hex.EncodeToString(h.Sum(nil))
 
-	fmt.Println("Hashhes>>>>>>>>>> ", givenHash, expectedHash)
 	if givenHash != expectedHash {
 		return false
 	}
