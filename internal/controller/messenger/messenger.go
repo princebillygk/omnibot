@@ -1,23 +1,26 @@
 package messenger
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"os"
+	"strings"
 
+	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
 )
 
 var msngrVerfToken string
+var appSecret string
 
 func init() {
-	var ok bool
-	msngrVerfToken, ok = os.LookupEnv("MESSENGER_VERIFY_TOKEN")
-	if !ok {
-		panic("Messenger Verification Webhook doesn't exists")
-	}
+	msngrVerfToken = utility.MustGetEnv[string]("MESSENGER_VERIFY_TOKEN")
+	appSecret = utility.MustGetEnv[string]("APP_SECRET")
 }
 
 // Messenger is a controller for messaging services
@@ -30,11 +33,12 @@ func New(pgSrvc *facebook.PageService) *Messenger {
 }
 
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
+
 	switch r.Method {
 	case "POST":
 		c.handleNotification(w, r)
 	case "GET":
-		c.handleVerification(w, r)
+		c.handleWebhookVerification(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -42,13 +46,23 @@ func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	var body *Notification
-	err := json.NewDecoder(r.Body).Decode(&body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("%+v\n", body)
+	ok := c.verifyRequestSignature(r, data)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	err = json.Unmarshal(data, &body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	if body.Object != "page" {
 		w.WriteHeader(http.StatusNotFound)
@@ -70,7 +84,7 @@ func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c Messenger) handleVerification(w http.ResponseWriter, r *http.Request) {
+func (c Messenger) handleWebhookVerification(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	mode, token, challenge := query.Get("hub.mode"), query.Get("hub.verify_token"), query.Get("hub.challenge")
 
@@ -96,4 +110,29 @@ func (m Messenger) handleMessage(w http.ResponseWriter, input *MessageInput) err
 		log.Fatalln(err)
 	}
 	return nil
+}
+
+func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
+	sign := r.Header.Get("X-Hub-Signature-256")
+	fmt.Println("Signature", sign)
+
+	if sign == "" {
+		return false
+	}
+
+	givenHash, ok := strings.CutPrefix(sign, "sha256=")
+	if !ok {
+		return false
+	}
+
+	h := hmac.New(sha256.New, []byte(appSecret))
+	h.Write(payload)
+
+	expectedHash := hex.EncodeToString(h.Sum(nil))
+
+	fmt.Println("Hashhes>>>>>>>>>> ", givenHash, expectedHash)
+	if givenHash != expectedHash {
+		return false
+	}
+	return true
 }
