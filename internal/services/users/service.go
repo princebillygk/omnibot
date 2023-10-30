@@ -16,18 +16,18 @@ type Platform string
 
 type ApplicationError struct {
 	ErrCode    int
-	httpStatus int
-	message    string
+	HttpStatus int
+	Message    string
 }
 
 func (ae ApplicationError) Error() string {
-	return ae.message
+	return ae.Message
 }
 
 var UserNotFoundErr = ApplicationError{
 	ErrCode:    4041,
-	httpStatus: http.StatusNotFound,
-	message:    "User not found",
+	HttpStatus: http.StatusNotFound,
+	Message:    "User not found",
 }
 
 const (

@@ -41,20 +41,28 @@ func main() {
 
 	// Setup server
 	mux := http.NewServeMux()
-	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken)).HandleWebhook)
+	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken), usrSrvc).HandleWebhook)
 	server := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%d", port),
 		Handler: mux,
 	}
 
+	sentryDsn := utility.MustGetEnv[string]("SENTRY_DSN")
 	// Setup sentry
-	sentry.Init(sentry.ClientOptions{
-		Dsn: "https://c46f8ee4ece84bb7a6ac608960d7f886@app.glitchtip.com/4958",
-	})
-
+	err = sentry.Init(sentry.ClientOptions{Dsn: sentryDsn})
+	if err != nil {
+		panic(err)
+	}
 	defer sentry.Flush(time.Second * 5)
+
 	sigs, exit := make(chan os.Signal, 1), make(chan bool, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	sentry.CaptureException(&users.ApplicationError{
+		ErrCode:    2020,
+		HttpStatus: http.StatusNotFound,
+		Message:    "This is a test message",
+	})
 
 	// Cleanup
 	go func() {

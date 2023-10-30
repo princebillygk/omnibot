@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
 )
@@ -27,11 +28,12 @@ func init() {
 
 // Messenger is a controller for messaging services
 type Messenger struct {
-	pgSrvc *facebook.PageService
+	pgSrvc  *facebook.PageService
+	usrSrvc *users.Service
 }
 
-func New(pgSrvc *facebook.PageService) *Messenger {
-	return &Messenger{pgSrvc}
+func New(pgSrvc *facebook.PageService, usrSrvc *users.Service) *Messenger {
+	return &Messenger{pgSrvc, usrSrvc}
 }
 
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
