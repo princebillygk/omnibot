@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/princebillygk/omnibot/internal/controller/messenger"
 	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
@@ -15,11 +19,11 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	port := utility.GetEnv[int64]("PORT", 3000)
+
 	pageAccessToken := utility.MustGetEnv[string]("PAGE_ACCESS_TOKEN")
 	mongoURI := utility.MustGetEnv[string]("MONGO_URI")
-
-	ctx := context.TODO()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -33,16 +37,42 @@ func main() {
 	}()
 
 	db := client.Database("omnibot")
-	userService := users.NewService(db)
+	usrSrvc := users.NewService(db)
 
-	err = userService.UpdateLastActivityTime(ctx, "1234", time.Time)
-
+	usr, err := usrSrvc.GetUserById(ctx, "653f725df31a0b4d1fde82d3")
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(usr)
 
-	http.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken)).HandleWebhook)
+	// Setup server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken)).HandleWebhook)
+	server := &http.Server{
+		Addr:    fmt.Sprintf("0.0.0.0:%d", port),
+		Handler: mux,
+	}
+
+	// Setup sentry
+	sentry.Init(sentry.ClientOptions{
+		Dsn: "https://c46f8ee4ece84bb7a6ac608960d7f886@app.glitchtip.com/4958",
+	})
+
+	defer sentry.Flush(time.Second * 5)
+	sigs, exit := make(chan os.Signal, 1), make(chan bool, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	// Cleanup
+	go func() {
+		<-sigs
+		fmt.Println("Shutting down all services...")
+		sentry.Flush(time.Second * 5)
+		_ = server.Shutdown(ctx)
+		fmt.Println("Exiting!")
+		exit <- true
+	}()
+
 	fmt.Printf("Running http server at port %d\n", port)
-
-	http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), nil)
+	server.ListenAndServe()
+	<-exit
 }
