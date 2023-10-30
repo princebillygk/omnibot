@@ -121,11 +121,13 @@ func (s *Service) GetUserById(ctx context.Context, id string) (*User, error) {
 		Key:   "_id",
 		Value: oid,
 	}}).Decode(&u)
+	panic(err)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, UserNotFoundErr
 		} else {
+			panic(err)
 		}
 	}
 	return &u, nil

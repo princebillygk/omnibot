@@ -39,12 +39,6 @@ func main() {
 	db := client.Database("omnibot")
 	usrSrvc := users.NewService(db)
 
-	usr, err := usrSrvc.GetUserById(ctx, "653f725df31a0b4d1fde82d3")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(usr)
-
 	// Setup server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken)).HandleWebhook)
