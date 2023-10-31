@@ -30,7 +30,8 @@ type Logger struct {
 	isSentryInitialized bool
 }
 
-// Init different services required for logger. It is required to initialize logger before using any service of logger
+// Init different services required for logger. It is required to initialize
+// logger before using any service of logger
 func (l *Logger) Init() error {
 	if l.SentryOptions != nil {
 		if err := sentry.Init(*l.SentryOptions); err != nil {
