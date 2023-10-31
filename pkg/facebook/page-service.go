@@ -28,30 +28,6 @@ type FacebookResponse struct {
 	} `json:"error"`
 }
 
-func (p PageService) SendTextMessage(senderId string, msg string) error {
-	return p.callSendAPI(senderId, map[string]any{
-		"text": msg,
-	})
-}
-
-func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons []Button) error {
-	buttonObjects := make([]map[string]any, 0, len(buttons))
-	for _, b := range buttons {
-		buttonObjects = append(buttonObjects, b.GetButtonObject())
-	}
-
-	return p.callSendAPI(senderId, map[string]any{
-		"attachment": map[string]any{
-			"type": "template",
-			"payload": map[string]any{
-				"template_type": "button",
-				"text":          msg,
-				"buttons":       buttonObjects,
-			},
-		},
-	})
-}
-
 func (p PageService) callSendAPI(senderId string, msg map[string]any) error {
 	inputBody, err := json.Marshal(&SendRequestInputBody{
 		Recipient: Recipient{ID: senderId},
@@ -91,4 +67,28 @@ func (p PageService) callSendAPI(senderId string, msg map[string]any) error {
 	log.Println(string(inputBody))
 	log.Println(string(resBody))
 	return nil
+}
+
+func (p PageService) SendTextMessage(senderId string, msg string) error {
+	return p.callSendAPI(senderId, map[string]any{
+		"text": msg,
+	})
+}
+
+func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons []Button) error {
+	buttonObjects := make([]map[string]any, 0, len(buttons))
+	for _, b := range buttons {
+		buttonObjects = append(buttonObjects, b.GetButtonObject())
+	}
+
+	return p.callSendAPI(senderId, map[string]any{
+		"attachment": map[string]any{
+			"type": "template",
+			"payload": map[string]any{
+				"template_type": "button",
+				"text":          msg,
+				"buttons":       buttonObjects,
+			},
+		},
+	})
 }
