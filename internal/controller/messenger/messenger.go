@@ -111,7 +111,7 @@ type MessageInput struct {
 func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
 	w.WriteHeader(http.StatusOK)
 	err := m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
-	panic("wer234r23radff")
+	panic("wer234r23")
 	if err != nil {
 		log.Fatalln(err)
 	}
