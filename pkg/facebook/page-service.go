@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/princebillygk/omnibot/pkg/facebook/template"
 )
 
 const sendAPIURL = "https://graph.facebook.com/v2.6/me/messages"
@@ -75,7 +77,7 @@ func (p PageService) SendTextMessage(senderId string, msg string) error {
 	})
 }
 
-func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons []Button) error {
+func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons []template.Button) error {
 	buttonObjects := make([]map[string]any, 0, len(buttons))
 	for _, b := range buttons {
 		buttonObjects = append(buttonObjects, b.GetButtonObject())

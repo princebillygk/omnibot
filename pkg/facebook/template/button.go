@@ -1,4 +1,4 @@
-package facebook
+package template
 
 type ButtonType string
 
@@ -12,13 +12,13 @@ type Button interface {
 	GetButtonObject() map[string]any
 }
 
-// WebButton represents button object with web url
-type WebButton struct {
+// URLButton represents button object with web url
+type URLButton struct {
 	Title string
 	URL   string
 }
 
-func (w WebButton) GetButtonObject() map[string]any {
+func (w URLButton) GetButtonObject() map[string]any {
 	return map[string]any{
 		"type":  ButtonTypeWebURL,
 		"title": w.Title,

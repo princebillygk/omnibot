@@ -16,6 +16,7 @@ import (
 	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
+	"github.com/princebillygk/omnibot/pkg/facebook/template"
 )
 
 // TODO: Handle duplicacy of request
@@ -139,5 +140,18 @@ type MessageInput struct {
 
 func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
 	w.WriteHeader(http.StatusOK)
-	return m.pgSrvc.SendTextMessage(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
+	return m.pgSrvc.SendFromButtonTemplate(
+		input.Sender.ID,
+		fmt.Sprintf("Message received with love %s", input.Message.Text),
+		[]template.Button{
+			template.URLButton{
+				Title: "My Portfolio",
+				URL:   "https://princebillygk.github.io/",
+			},
+			template.PhoneNumberButton{
+				Title:       "Call me",
+				PhoneNumber: "01521432424",
+			},
+		},
+	)
 }
