@@ -41,8 +41,8 @@ func New(pgSrvc *facebook.PageService, usrSrvc *users.Service, logger *config.Lo
 	return &Messenger{pgSrvc, usrSrvc, logger}
 }
 
+// HandleWebhook routes webhook request to the actual handler depending on the request method
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
 	case "POST":
 		c.handleNotification(w, r)
@@ -53,6 +53,31 @@ func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
+	sign := r.Header.Get("X-Hub-Signature-256")
+	fmt.Println("Signature", sign)
+
+	if sign == "" {
+		return false
+	}
+
+	givenHash, ok := strings.CutPrefix(sign, "sha256=")
+	if !ok {
+		return false
+	}
+
+	h := hmac.New(sha256.New, []byte(appSecret))
+	h.Write(payload)
+
+	expectedHash := hex.EncodeToString(h.Sum(nil))
+
+	if givenHash != expectedHash {
+		return false
+	}
+	return true
+}
+
+// handleNotification handle notifications sent from messenger webhooks
 func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	var body *Notification
 	data, err := io.ReadAll(r.Body)
@@ -93,6 +118,7 @@ func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleWebhookVerification handles messenger webhook verification
 func (c Messenger) handleWebhookVerification(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	mode, token, challenge := query.Get("hub.mode"), query.Get("hub.verify_token"), query.Get("hub.challenge")
@@ -116,28 +142,4 @@ func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, inp
 	w.WriteHeader(http.StatusOK)
 	m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
 	return errors.New("Test manual error")
-}
-
-func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
-	sign := r.Header.Get("X-Hub-Signature-256")
-	fmt.Println("Signature", sign)
-
-	if sign == "" {
-		return false
-	}
-
-	givenHash, ok := strings.CutPrefix(sign, "sha256=")
-	if !ok {
-		return false
-	}
-
-	h := hmac.New(sha256.New, []byte(appSecret))
-	h.Write(payload)
-
-	expectedHash := hex.EncodeToString(h.Sum(nil))
-
-	if givenHash != expectedHash {
-		return false
-	}
-	return true
 }
