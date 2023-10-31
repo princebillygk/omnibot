@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -44,6 +45,11 @@ func (l *Logger) Init() error {
 		panic("A Mongo database instance is required for logger!")
 	}
 	return nil
+}
+
+func (l *Logger) LogError(err error) {
+	log.Println("Unexpected error occurred", err)
+	sentry.CaptureException(err)
 }
 
 // Shutdown closes and cleanup services that are intialized for logger

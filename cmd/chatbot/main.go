@@ -52,7 +52,7 @@ func main() {
 
 	// Setup server
 	mux := http.NewServeMux()
-	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken), usrSrvc).HandleWebhook)
+	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken), usrSrvc, &logger).HandleWebhook)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%d", port),

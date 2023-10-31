@@ -6,12 +6,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/princebillygk/omnibot/internal/config"
 	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
@@ -31,10 +33,12 @@ func init() {
 type Messenger struct {
 	pgSrvc  *facebook.PageService
 	usrSrvc *users.Service
+
+	logger *config.Logger
 }
 
-func New(pgSrvc *facebook.PageService, usrSrvc *users.Service) *Messenger {
-	return &Messenger{pgSrvc, usrSrvc}
+func New(pgSrvc *facebook.PageService, usrSrvc *users.Service, logger *config.Logger) *Messenger {
+	return &Messenger{pgSrvc, usrSrvc, logger}
 }
 
 func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +88,7 @@ func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
-			log.Println(err)
+			c.logger.LogError(err)
 		}
 	}
 }
@@ -110,11 +114,8 @@ type MessageInput struct {
 
 func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
 	w.WriteHeader(http.StatusOK)
-	err := m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return nil
+	m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
+	return errors.New("Test manual error")
 }
 
 func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
