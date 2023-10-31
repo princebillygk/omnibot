@@ -1,6 +1,7 @@
 package messenger
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -76,7 +77,7 @@ func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	for _, entry := range body.Entry {
 		switch e := entry.Messaging[0]; {
 		case e.MessageEvent != nil:
-			err = c.handleMessage(w, &MessageInput{
+			err = c.handleMessage(r.Context(), w, &MessageInput{
 				MessageEvent: e.MessageEvent,
 				EventProps:   &e.EventProps,
 			})
@@ -107,9 +108,10 @@ type MessageInput struct {
 	*EventProps
 }
 
-func (m Messenger) handleMessage(w http.ResponseWriter, input *MessageInput) error {
+func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
 	w.WriteHeader(http.StatusOK)
 	err := m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
+	panic("wer234r23radff")
 	if err != nil {
 		log.Fatalln(err)
 	}
