@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -140,6 +139,5 @@ type MessageInput struct {
 
 func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
 	w.WriteHeader(http.StatusOK)
-	m.pgSrvc.SendMsg(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
-	return errors.New("Test manual error")
+	return m.pgSrvc.SendTextMessage(input.Sender.ID, fmt.Sprintf("Message received with love %s", input.Message.Text))
 }

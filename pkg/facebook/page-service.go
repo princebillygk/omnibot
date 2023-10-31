@@ -28,16 +28,38 @@ type FacebookResponse struct {
 	} `json:"error"`
 }
 
-func (p PageService) SendMsg(senderId string, msg string) error {
+func (p PageService) SendTextMessage(senderId string, msg string) error {
+	return p.callSendAPI(senderId, map[string]any{
+		"text": msg,
+	})
+}
+
+func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons []Button) error {
+	buttonObjects := make([]map[string]any, 0, len(buttons))
+	for _, b := range buttons {
+		buttonObjects = append(buttonObjects, b.GetButtonObject())
+	}
+
+	return p.callSendAPI(senderId, map[string]any{
+		"attachment": map[string]any{
+			"type": "template",
+			"payload": map[string]any{
+				"template_type": "button",
+				"text":          msg,
+				"buttons":       buttonObjects,
+			},
+		},
+	})
+}
+
+func (p PageService) callSendAPI(senderId string, msg map[string]any) error {
 	inputBody, err := json.Marshal(&SendRequestInputBody{
 		Recipient: Recipient{ID: senderId},
-		Message: Message{
-			Text: msg,
-		},
+		Message:   msg,
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to parse message: %v", err)
+		return fmt.Errorf("Failed to parse message: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", sendAPIURL, bytes.NewReader(inputBody))
@@ -47,10 +69,8 @@ func (p PageService) SendMsg(senderId string, msg string) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
-		log.Fatalf("Failed to initiate request %v:", err)
+		return fmt.Errorf("Failed to initiate request %v:", err)
 	}
-
-	fmt.Println(string(inputBody))
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -62,8 +82,13 @@ func (p PageService) SendMsg(senderId string, msg string) error {
 		json.NewDecoder(res.Body).Decode(&output)
 		return fmt.Errorf("Unable to send message! Client Error: %s ", output.Error.Message)
 	}
-	resBody, err := io.ReadAll(res.Body)
-	log.Println(string(resBody))
 
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	log.Println(string(inputBody))
+	log.Println(string(resBody))
 	return nil
 }
