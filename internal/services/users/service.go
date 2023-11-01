@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/princebillygk/omnibot/internal/config"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,20 +15,10 @@ import (
 
 type Platform string
 
-type ApplicationError struct {
-	ErrCode    int
-	HttpStatus int
-	Message    string
-}
-
-func (ae ApplicationError) Error() string {
-	return ae.Message
-}
-
-var UserNotFoundErr = ApplicationError{
-	ErrCode:    4041,
-	HttpStatus: http.StatusNotFound,
-	Message:    "User not found",
+var UserNotFoundErr = config.ApplicationError{
+	HttpStatus:   http.StatusNotFound,
+	Message:      "User not found",
+	DebugMessage: "User not found",
 }
 
 const (
@@ -133,10 +124,9 @@ func (s *Service) GetUserById(ctx context.Context, id string) (*User, error) {
 }
 
 func (s *Service) DeleteUserByID(c context.Context, id string) error {
-	res, err := s.collection.DeleteOne(c, bson.D{{
+	_, err := s.collection.DeleteOne(c, bson.D{{
 		Key:   "_id",
 		Value: id,
 	}})
-	fmt.Println(res)
 	return err
 }

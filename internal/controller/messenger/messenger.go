@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/princebillygk/omnibot/internal/config"
+	"github.com/princebillygk/omnibot/internal/services/subscription"
 	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
@@ -31,14 +32,20 @@ func init() {
 
 // Messenger is a controller for messaging services
 type Messenger struct {
-	pgSrvc  *facebook.PageService
-	usrSrvc *users.Service
+	pgSrvc   *facebook.PageService
+	usrSrvc  *users.Service
+	subsSrvc *subscription.Service
 
 	logger *config.Logger
 }
 
-func New(pgSrvc *facebook.PageService, usrSrvc *users.Service, logger *config.Logger) *Messenger {
-	return &Messenger{pgSrvc, usrSrvc, logger}
+func New(pgSrvc *facebook.PageService, usrSrvc *users.Service, subsSrvc *subscription.Service, logger *config.Logger) *Messenger {
+	return &Messenger{
+		pgSrvc:   pgSrvc,
+		usrSrvc:  usrSrvc,
+		subsSrvc: subsSrvc,
+		logger:   logger,
+	}
 }
 
 // HandleWebhook routes webhook request to the actual handler depending on the request method
@@ -80,7 +87,7 @@ func (m Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool 
 func (m Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	var body *Notification
 	data, err := io.ReadAll(r.Body)
-	fmt.Println(string(data))
+	// fmt.Println(string(data))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -137,7 +144,7 @@ func (m Messenger) handleMessageNotification(ctx context.Context, w http.Respons
 	w.WriteHeader(http.StatusOK)
 	switch me.Message.Text {
 	case "subscribe":
-		return m.pgSrvc.SendOneTimeNotificationRequest(props.Sender.ID, "Subscribe", "subscribe")
+		return m.pgSrvc.SendOneTimeNotificationRequest(props.Sender.ID, "Game", "game")
 	case "buttons":
 		return m.pgSrvc.SendFromButtonTemplate(
 			props.Sender.ID,
@@ -163,6 +170,9 @@ func (m Messenger) handleMessageNotification(ctx context.Context, w http.Respons
 }
 
 func (m Messenger) handleOptInEvent(ctx context.Context, w http.ResponseWriter, oe *OptInEvent, props *EventProps) error {
-	fmt.Printf("%#v", oe)
-	return nil
+	err := m.subsSrvc.Subscribe(ctx, props.Sender.ID, oe.OptIn.Payload)
+	if ae, ok := err.(config.ApplicationError); ok {
+		return m.pgSrvc.SendTextMessage(props.Sender.ID, ae.Message)
+	}
+	return m.pgSrvc.SendTextMessage(props.Sender.ID, fmt.Sprintf("Subscribe to %s successfully\n", oe.OptIn.Payload))
 }

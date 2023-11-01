@@ -11,6 +11,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/princebillygk/omnibot/internal/config"
 	"github.com/princebillygk/omnibot/internal/controller/messenger"
+	"github.com/princebillygk/omnibot/internal/services/subscription"
 	"github.com/princebillygk/omnibot/internal/services/users"
 	"github.com/princebillygk/omnibot/internal/utility"
 	"github.com/princebillygk/omnibot/pkg/facebook"
@@ -38,6 +39,7 @@ func main() {
 
 	db := client.Database("omnibot")
 	usrSrvc := users.NewService(db)
+	subsSrvc := subscription.NewService(db)
 
 	sentryDsn := utility.MustGetEnv[string]("SENTRY_DSN")
 	logger := config.Logger{
@@ -52,7 +54,7 @@ func main() {
 
 	// Setup server
 	mux := http.NewServeMux()
-	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken), usrSrvc, &logger).HandleWebhook)
+	mux.HandleFunc("/chat/messenger", messenger.New(facebook.NewPageService(pageAccessToken), usrSrvc, subsSrvc, &logger).HandleWebhook)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%d", port),
