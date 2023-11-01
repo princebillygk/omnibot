@@ -42,20 +42,19 @@ func New(pgSrvc *facebook.PageService, usrSrvc *users.Service, logger *config.Lo
 }
 
 // HandleWebhook routes webhook request to the actual handler depending on the request method
-func (c Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
+func (m Messenger) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		c.handleNotification(w, r)
+		m.handleNotification(w, r)
 	case "GET":
-		c.handleWebhookVerification(w, r)
+		m.handleWebhookVerification(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
+func (m Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool {
 	sign := r.Header.Get("X-Hub-Signature-256")
-	fmt.Println("Signature", sign)
 
 	if sign == "" {
 		return false
@@ -78,15 +77,16 @@ func (c Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool 
 }
 
 // handleNotification handle notifications sent from messenger webhooks
-func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
+func (m Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	var body *Notification
 	data, err := io.ReadAll(r.Body)
+	fmt.Println(string(data))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	ok := c.verifyRequestSignature(r, data)
+	ok := m.verifyRequestSignature(r, data)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -104,22 +104,22 @@ func (c Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, entry := range body.Entry {
+		// fmt.Printf("%#v", entry.Messaging)
 		switch e := entry.Messaging[0]; {
 		case e.MessageEvent != nil:
-			err = c.handleMessage(r.Context(), w, &MessageInput{
-				MessageEvent: e.MessageEvent,
-				EventProps:   &e.EventProps,
-			})
+			err = m.handleMessageNotification(r.Context(), w, e.MessageEvent, &e.EventProps)
+		case e.OptInEvent != nil:
+			err = m.handleOptInEvent(r.Context(), w, e.OptInEvent, &e.EventProps)
 		}
 
 		if err != nil {
-			c.logger.LogError(err)
+			m.logger.LogError(err)
 		}
 	}
 }
 
 // handleWebhookVerification handles messenger webhook verification
-func (c Messenger) handleWebhookVerification(w http.ResponseWriter, r *http.Request) {
+func (m Messenger) handleWebhookVerification(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	mode, token, challenge := query.Get("hub.mode"), query.Get("hub.verify_token"), query.Get("hub.challenge")
 
@@ -133,25 +133,36 @@ func (c Messenger) handleWebhookVerification(w http.ResponseWriter, r *http.Requ
 	defer log.Println("Verified webhook callback url!")
 }
 
-type MessageInput struct {
-	*MessageEvent
-	*EventProps
+func (m Messenger) handleMessageNotification(ctx context.Context, w http.ResponseWriter, me *MessageEvent, props *EventProps) error {
+	w.WriteHeader(http.StatusOK)
+	switch me.Message.Text {
+	case "subscribe":
+		return m.pgSrvc.SendOneTimeNotificationRequest(props.Sender.ID, "Subscribe", "subscribe")
+	case "buttons":
+		return m.pgSrvc.SendFromButtonTemplate(
+			props.Sender.ID,
+			fmt.Sprintf("Message received with love %s", me.Message.Text),
+			[]template.Button{
+				template.URLButton{
+					Title: "My Portfolio",
+					URL:   "https://princebillygk.github.io/",
+				},
+				template.PostbackButton{
+					Title:   "Poke me",
+					Payload: "message",
+				},
+				template.PhoneNumberButton{
+					Title:       "Call me",
+					PhoneNumber: "01521432424",
+				},
+			},
+		)
+	default:
+		return m.pgSrvc.SendTextMessage(props.Sender.ID, "Prince Billy Graham Karmoker")
+	}
 }
 
-func (m Messenger) handleMessage(ctx context.Context, w http.ResponseWriter, input *MessageInput) error {
-	w.WriteHeader(http.StatusOK)
-	return m.pgSrvc.SendFromButtonTemplate(
-		input.Sender.ID,
-		fmt.Sprintf("Message received with love %s", input.Message.Text),
-		[]template.Button{
-			template.URLButton{
-				Title: "My Portfolio",
-				URL:   "https://princebillygk.github.io/",
-			},
-			template.PhoneNumberButton{
-				Title:       "Call me",
-				PhoneNumber: "01521432424",
-			},
-		},
-	)
+func (m Messenger) handleOptInEvent(ctx context.Context, w http.ResponseWriter, oe *OptInEvent, props *EventProps) error {
+	fmt.Printf("%#v", oe)
+	return nil
 }

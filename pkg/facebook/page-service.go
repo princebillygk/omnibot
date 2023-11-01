@@ -94,3 +94,16 @@ func (p PageService) SendFromButtonTemplate(senderId string, msg string, buttons
 		},
 	})
 }
+
+func (p PageService) SendOneTimeNotificationRequest(senderId string, title string, payload string) error {
+	return p.callSendAPI(senderId, map[string]any{
+		"attachment": map[string]any{
+			"type": "template",
+			"payload": map[string]any{
+				"template_type": "one_time_notif_req",
+				"title":         title,
+				"payload":       payload,
+			},
+		},
+	})
+}
