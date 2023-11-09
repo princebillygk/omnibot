@@ -95,7 +95,11 @@ func (s *Service) GetUser(ctx context.Context, input *GetUserInput) (*User, erro
 	var u User
 	err := s.collection.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
-		return nil, err
+		if err == mongo.ErrNoDocuments {
+			return nil, UserNotFoundErr
+		} else {
+			return nil, err
+		}
 	}
 	return &u, nil
 }
@@ -117,7 +121,7 @@ func (s *Service) GetUserById(ctx context.Context, id string) (*User, error) {
 		if err == mongo.ErrNoDocuments {
 			return nil, UserNotFoundErr
 		} else {
-			panic(err)
+			return nil, err
 		}
 	}
 	return &u, nil

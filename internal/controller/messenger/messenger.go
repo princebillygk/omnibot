@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -87,7 +88,8 @@ func (m Messenger) verifyRequestSignature(r *http.Request, payload []byte) bool 
 func (m Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 	var body *Notification
 	data, err := io.ReadAll(r.Body)
-	// fmt.Println(string(data))
+
+	fmt.Println(string(data))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -115,8 +117,8 @@ func (m Messenger) handleNotification(w http.ResponseWriter, r *http.Request) {
 		switch e := entry.Messaging[0]; {
 		case e.MessageEvent != nil:
 			err = m.handleMessageNotification(r.Context(), w, e.MessageEvent, &e.EventProps)
-		case e.OptInEvent != nil:
-			err = m.handleOptInEvent(r.Context(), w, e.OptInEvent, &e.EventProps)
+			// case e.OptInEvent != nil:
+			// 	err = m.handleOptInEvent(r.Context(), w, e.OptInEvent, &e.EventProps)
 		}
 
 		if err != nil {
@@ -169,10 +171,28 @@ func (m Messenger) handleMessageNotification(ctx context.Context, w http.Respons
 	}
 }
 
-func (m Messenger) handleOptInEvent(ctx context.Context, w http.ResponseWriter, oe *OptInEvent, props *EventProps) error {
-	err := m.subsSrvc.Subscribe(ctx, props.Sender.ID, oe.OptIn.Payload)
-	if ae, ok := err.(config.ApplicationError); ok {
-		return m.pgSrvc.SendTextMessage(props.Sender.ID, ae.Message)
+// func (m Messenger) handleOptInEvent(ctx context.Context, w http.ResponseWriter, oe *OptInEvent, props *EventProps) error {
+// 	err := m.subsSrvc.Subscribe(ctx, props.Sender.ID, oe.OptIn.Payload)
+// 	if ae, ok := err.(config.ApplicationError); ok {
+// 		return m.pgSrvc.SendTextMessage(props.Sender.ID, ae.Message)
+// 	}
+// 	return m.pgSrvc.SendTextMessage(props.Sender.ID, fmt.Sprintf("Subscribe to %s successfully\n", oe.OptIn.Payload))
+// }
+
+func (m Messenger) getUser(ctx context.Context, userId string) *users.User {
+	u, err := m.usrSrvc.GetUser(ctx, &users.GetUserInput{
+		Platform: users.MessengerPlatform,
+		UserID:   userId,
+	})
+
+	if err != nil {
+		if errors.Is(users.UserNotFoundErr) {
+
+		}
+
 	}
-	return m.pgSrvc.SendTextMessage(props.Sender.ID, fmt.Sprintf("Subscribe to %s successfully\n", oe.OptIn.Payload))
+}
+
+func (m Messenger) Register() *user.Userr {
+
 }

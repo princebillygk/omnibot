@@ -2,9 +2,11 @@ package subscription
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/princebillygk/omnibot/internal/config"
+	"github.com/princebillygk/omnibot/internal/services/users"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,9 +14,10 @@ import (
 )
 
 type Subscription struct {
-	ID      primitive.ObjectID `bson:"_id,omitempty"`
-	UserID  string             `bson:"userID"`
-	Subject string             `bson:"subject"`
+	ID                         primitive.ObjectID `bson:"_id,omitempty"`
+	SubscriberId               primitive.ObjectID `bson:"subscriber_id"`
+	Subject                    string             `bson:"subject"`
+	MessengerNotificationToken string             `bson:"messeger_notification_token,omitempty"`
 }
 
 type Service struct {
@@ -42,17 +45,34 @@ func NewService(db *mongo.Database) *Service {
 	return &Service{db, coll}
 }
 
-func (s *Service) Subscribe(ctx context.Context, userID string, subject string) error {
-	_, err := s.collection.InsertOne(ctx, Subscription{
-		UserID:  userID,
-		Subject: subject,
-	})
+type SubscriptionOptions struct {
+	Subject                    string
+	MessengerNotificationToken string
+}
 
+func (s *Service) Subscribe(ctx context.Context, user users.User, opts SubscriptionOptions) error {
+	var err error
+	var subs Subscription
+
+	switch user.Platform {
+	case users.MessengerPlatform:
+		if opts.MessengerNotificationToken == "" {
+			return errors.New("Messenger Notification is required")
+		}
+
+		subs.SubscriberId = user.ID
+		subs.Subject = opts.Subject
+		subs.MessengerNotificationToken = opts.MessengerNotificationToken
+	default:
+		return fmt.Errorf("Subscription service is not yet available for %s platform yet.", user.Platform)
+	}
+
+	_, err = s.collection.InsertOne(ctx, subs)
 	if me := err.(mongo.WriteException); me.HasErrorCode(11000) {
 		return config.ApplicationError{
 			HttpStatus:   200,
-			Message:      fmt.Sprintf("You are already subscribed to %s!", subject),
-			DebugMessage: fmt.Sprintf("User %s is already subscribed to %s!", userID, subject),
+			Message:      fmt.Sprintf("You are already subscribed to %s!", opts.Subject),
+			DebugMessage: fmt.Sprintf("User %s is already subscribed to %s!", user.ID, opts.Subject),
 		}
 	}
 	return err
